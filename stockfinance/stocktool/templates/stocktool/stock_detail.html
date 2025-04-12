@@ -13,6 +13,22 @@
             max-height: 150px;
             overflow-y: auto;
         }
+
+        .text-muted {
+            color: white;
+        }
+
+        .accordion {
+            padding: 90px 0px 20px;
+        }
+
+        .bg-dark {
+            --bs-bg-opacity: 0.9;
+        }
+
+        .card-body h2 {
+            font-size: 2.5rem;
+        }
     </style>
 </head>
 
@@ -37,16 +53,20 @@
             <div class="alert alert-danger">{{ error }}</div>
             {% else %}
             <h2>{{ full_name }} ({{ symbol }})</h2>
-            <p class="text-muted">Exchange: {{ exchange }}</p>
+            <p>Exchange: {{ primary_exchange }}</p>
 
-            <div class="card bg-secondary p-4 mt-3">
-                <h4>Current Price:</h4>
-                <h2>{{ currency }} {{ current_price }}</h2>
+            <div class="card">
+                <div class="card-body">
+                    <h4>Current Price:</h4>
+                    <h2>{{ currency }} {{ current_price }}</h2>
+                </div>
             </div>
             {% endif %}
+
             <div class="accordion" id="financialsAccordion">
 
                 <!-- Income Statement -->
+                <h4>Financials</h4>
                 <div class="accordion-item">
                     <h2 class="accordion-header" id="headingIncome">
                         <button class="accordion-button" type="button" data-bs-toggle="collapse"
@@ -57,6 +77,47 @@
                     <div id="collapseIncome" class="accordion-collapse collapse show"
                          data-bs-parent="#financialsAccordion">
                         <div class="accordion-body">
+                             <!-- Carousel -->
+                             {% if annual_graph or quarterly_graph %}
+                             <div id="carouselExampleIndicators" class="carousel slide" data-bs-ride="carousel">
+                                 <div class="carousel-indicators">
+                                     {% if annual_graph %}
+                                     <button type="button" data-bs-target="#carouselExampleIndicators"
+                                             data-bs-slide-to="0" class="active"
+                                             aria-current="true" aria-label="Yearly Revenue and Income"></button>
+                                     {% endif %}
+                                     {% if quarterly_graph %}
+                                     <button type="button" data-bs-target="#carouselExampleIndicators"
+                                             data-bs-slide-to="1"
+                                             aria-label="Quarterly Revenue and Income"></button>
+                                     {% endif %}
+                                 </div>
+                                 <div class="carousel-inner">
+                                     {% if annual_graph %}
+                                     <div class="carousel-item active">
+                                         <img src="/{{ annual_graph }}" class="d-block w-100"
+                                              alt="Yearly Revenue and Income">
+                                     </div>
+                                     {% endif %}
+                                     {% if quarterly_graph %}
+                                     <div class="carousel-item {% if not annual_graph %}active{% endif %}">
+                                         <img src="/{{ quarterly_graph }}" class="d-block w-100"
+                                              alt="Quarterly Revenue and Income">
+                                     </div>
+                                     {% endif %}
+                                 </div>
+                                 <button class="carousel-control-prev" type="button" data-bs-target="#carouselExampleIndicators"
+                                         data-bs-slide="prev">
+                                     <span class="carousel-control-prev-icon" aria-hidden="true"></span>
+                                     <span class="visually-hidden">Previous</span>
+                                 </button>
+                                 <button class="carousel-control-next" type="button" data-bs-target="#carouselExampleIndicators"
+                                         data-bs-slide="next">
+                                     <span class="carousel-control-next-icon" aria-hidden="true"></span>
+                                     <span class="visually-hidden">Next</span>
+                                 </button>
+                             </div>
+                             {% endif %}
                             <p><strong>Total Revenue:</strong> {{ TotalRevenue }}</p>
                             <p><strong>Operating Expense:</strong> {{ OperatingExpense }}</p>
                             <p><strong>Net Income:</strong> {{ NetIncome }}</p>
@@ -65,7 +126,6 @@
                             <p><strong>Operating Income:</strong> {{ OperatingIncome }}</p>
                             <p><strong>EPS:</strong> {{ EPS }}</p>
                             <p><strong>Net Profit Margin:</strong> {{ netProfitMargin|floatformat:2 }}%</p>
-                            <img src="{{ income_chart }}" alt="Income Chart" class="img-fluid mt-3">
                         </div>
                     </div>
                 </div>
@@ -84,7 +144,6 @@
                             <p><strong>Total Liabilities:</strong> {{ TotalLiabilities }}</p>
                             <p><strong>Equity:</strong> {{ equity }}</p>
                             <p><strong>ROE:</strong> {{ ROE|floatformat:2 }}%</p>
-                            <img src="{{ balance_chart }}" alt="Balance Sheet Chart" class="img-fluid mt-3">
                         </div>
                     </div>
                 </div>
@@ -105,14 +164,11 @@
                             <p><strong>Cash from Operations:</strong> {{ CashOps }}</p>
                             <p><strong>Cash from Investing:</strong> {{ CashInvesting }}</p>
                             <p><strong>Cash from Financing:</strong> {{ CashFinancing }}</p>
-                            <img src="{{ cashflow_chart }}" alt="Cash Flow Chart" class="img-fluid mt-3">
                         </div>
                     </div>
                 </div>
 
             </div>
-
-
         </div>
 
         <!-- RIGHT: Accordion Info -->
@@ -159,7 +215,7 @@
                                 {% if avg_volume %}
                                 <tr>
                                     <td><strong>Avg Volume:</strong></td>
-                                    <td>{{ currency }} {{ avg_volume }}</td>
+                                    <td>{{ avg_volume }}</td>
                                 </tr>
                                 {% endif %}
                                 {% if pe_ratio %}
@@ -182,7 +238,6 @@
                                 {% endif %}
                                 </tbody>
                             </table>
-
                         </div>
                     </div>
                 </div>
@@ -199,18 +254,15 @@
                          data-bs-parent="#accordionRight">
                         <div class="accordion-body">
                             {% if summary %}
-                            {% if summary %}
                             <p><strong>Summary:</strong><br>
                                 <span class="summary-preview">{{ summary|slice:":300" }}{% if summary|length > 300 %}...{% endif %}</span>
                             </p>
                             {% endif %}
-
-                            {% endif %}
-                            {% if founded %}<p><strong>Founded:</strong> {{ founded }}</p>{% endif %}
                             {% if ceo %}<p><strong>CEO:</strong> {{ ceo }}</p>{% endif %}
                             {% if employees %}<p><strong>Employees:</strong> {{ employees }}</p>{% endif %}
-                            {% if website %}<p><strong>Website:</strong> <a href="{{ website }}" target="_blank"
-                                                                            class="text-info">{{ website }}</a></p>{%
+                            {% if website %}
+                            <p><strong>Website:</strong> <a href="{{ website }}" target="_blank"
+                                                            class="text-info">{{ website }}</a></p>
                             {% endif %}
                         </div>
                     </div>

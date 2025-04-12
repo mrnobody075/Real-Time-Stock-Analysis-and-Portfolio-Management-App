@@ -57,7 +57,7 @@ def stock_redirect_view(request):
 def stock_detail_view(request, symbol):
     symbol = symbol.upper()
 
-    # If it's a common Indian stock symbol (e.g., INFY), try appending .NS
+    # Adjust Indian stock symbols (e.g., INFY -> INFY.NS)
     if not symbol.endswith(('.NS', '.BO')) and len(symbol) <= 5:
         test_symbol = symbol + ".NS"
         try:
@@ -65,11 +65,12 @@ def stock_detail_view(request, symbol):
             if test_info.get("regularMarketPrice") is not None:
                 symbol = test_symbol
         except Exception:
-            pass  # fallback to original symbol
+            pass  # Fallback to original symbol if .NS doesn't work
 
     stock = yf.Ticker(symbol)
 
     try:
+        # Fetch stock info
         info = stock.info
         current_price = info.get("regularMarketPrice")
         currency = info.get("currency")
@@ -81,9 +82,7 @@ def stock_detail_view(request, symbol):
             "GBP": "£",
             "JPY": "¥",
         }
-
-        currency_code = info.get("currency")
-        currency_symbol = CURRENCY_SYMBOLS.get(currency_code, currency_code)  # fallback to code if unknown
+        currency_symbol = CURRENCY_SYMBOLS.get(currency, currency)  # Fallback to currency code
         officers = info.get("companyOfficers")
         ceo = None
         if officers:
@@ -117,7 +116,7 @@ def stock_detail_view(request, symbol):
         TotalLiabilities = balance_sheet.loc['Total Liabilities Net Minority Interest'].iloc[0] if 'Total Liabilities Net Minority Interest' in balance_sheet.index else None
         equity = balance_sheet.loc['Total Equity Gross Minority Interest'].iloc[0] if 'Total Equity Gross Minority Interest' in balance_sheet.index else None
 
-        # Calculate missing values
+        # Calculate derived metrics
         netProfitMargin = (NetIncome / TotalRevenue) * 100 if TotalRevenue and NetIncome else None
         ROE = (NetIncome / equity) * 100 if equity and NetIncome else None
 
@@ -128,16 +127,80 @@ def stock_detail_view(request, symbol):
         CashFinancing = cash_flow.loc['Financing Cash Flow'].iloc[0] if 'Financing Cash Flow' in cash_flow.index else None
 
     except Exception as e:
+        print(f"Error fetching stock data: {e}")
         return render(request, 'stocktool/stock_detail.html', {
             'error': f"Could not fetch stock data for {symbol.upper()}."
         })
 
+    try:
+        # Fetch quarterly financials
+        quarterly_financials = stock.quarterly_financials
+
+        # Extract annual and quarterly revenue and income data
+        revenue_annual = income_statement.loc['Total Revenue'] if 'Total Revenue' in income_statement.index else None
+        income_annual = income_statement.loc['Net Income'] if 'Net Income' in income_statement.index else None
+
+        revenue_quarterly = quarterly_financials.loc['Total Revenue'] if 'Total Revenue' in quarterly_financials.index else None
+        income_quarterly = quarterly_financials.loc['Net Income'] if 'Net Income' in quarterly_financials.index else None
+
+        # Directory to save graphs
+        graph_dir = "static/stocktool/graphs"
+        os.makedirs(graph_dir, exist_ok=True)
+
+        # Generate yearly revenue and income graph
+        if revenue_annual is not None and income_annual is not None:
+            plt.figure(figsize=(8, 6))
+            plt.bar(revenue_annual.index, revenue_annual.values / 1e9, label="Revenue (Billion)", alpha=0.7)
+            plt.bar(income_annual.index, income_annual.values / 1e9, label="Income (Billion)", alpha=0.7)
+            plt.title(f"Yearly Revenue and Income - {symbol}")
+            plt.xlabel("Year")
+            plt.ylabel("Amount (in Billion)")
+            plt.legend()
+            annual_graph_path = os.path.join(graph_dir, f"{symbol}_annual.png")
+            plt.savefig(annual_graph_path)
+            plt.close()
+        else:
+            annual_graph_path = None
+
+        # Generate quarterly revenue and income graph
+        if revenue_quarterly is not None and income_quarterly is not None:
+            plt.figure(figsize=(8, 6))
+            plt.bar(revenue_quarterly.index, revenue_quarterly.values / 1e9, label="Revenue (Billion)", alpha=0.7)
+            plt.bar(income_quarterly.index, income_quarterly.values / 1e9, label="Income (Billion)", alpha=0.7)
+            plt.title(f"Quarterly Revenue and Income - {symbol}")
+            plt.xlabel("Quarter")
+            plt.ylabel("Amount (in Billion)")
+            plt.legend()
+            quarterly_graph_path = os.path.join(graph_dir, f"{symbol}_quarterly.png")
+            plt.savefig(quarterly_graph_path)
+            plt.close()
+        else:
+            quarterly_graph_path = None
+
+    except Exception as e:
+        print(f"Error generating graphs: {e}")
+        annual_graph_path = None
+        quarterly_graph_path = None
+
+    # Context to render template
     context = {
         'symbol': symbol.upper(),
         'current_price': current_price,
         'currency': currency_symbol,
         'full_name': full_name,
         'exchange': exchange,
+        'summary': info.get("longBusinessSummary"),
+        'employees': info.get("fullTimeEmployees"),
+        'website': info.get("website"),
+        'ceo': ceo,
+        'previous_close': info.get("previousClose"),
+        'day_range': f"{info.get('dayLow')} - {info.get('dayHigh')}" if info.get("dayLow") and info.get("dayHigh") else None,
+        'year_range': f"{info.get('fiftyTwoWeekLow')} - {info.get('fiftyTwoWeekHigh')}" if info.get("fiftyTwoWeekLow") and info.get("fiftyTwoWeekHigh") else None,
+        'market_cap': info.get("marketCap"),
+        'avg_volume': info.get("averageVolume"),
+        'pe_ratio': info.get("trailingPE"),
+        'dividend_yield': info.get("dividendYield"),
+        'primary_exchange': exchange,
         'TotalRevenue': TotalRevenue,
         'OperatingExpense': OperatingExpense,
         'NetIncome': NetIncome,
@@ -155,6 +218,8 @@ def stock_detail_view(request, symbol):
         'CashOps': CashFromOperations,
         'CashInvesting': CashFromInvesting,
         'CashFinancing': CashFinancing,
+        'annual_graph': annual_graph_path,
+        'quarterly_graph': quarterly_graph_path,
     }
 
     return render(request, 'stocktool/stock_detail.html', context)
