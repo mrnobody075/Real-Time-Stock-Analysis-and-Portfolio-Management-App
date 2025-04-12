@@ -1,22 +1,13 @@
-# stocktool/views.py
 import requests
-from django.shortcuts import render
-import pprint  # just for better formatting
+from django.shortcuts import render, redirect
 from django.contrib.auth.decorators import login_required
 from django.conf import settings
-from django.shortcuts import redirect
 import yfinance as yf
-import matplotlib.pyplot as plt
-from django.http import Http404
-from datetime import timedelta
-from django.utils import timezone
-from .models import NewsArticle  # import your model
 
 
 @login_required
 def home_view(request):
     api_key = settings.NEWS_API_KEY
-
 
     url = (
         f"https://newsapi.org/v2/everything?"
@@ -55,15 +46,12 @@ def news_view(request, category='top'):
         'category': category,
     })
 
+
 def stock_redirect_view(request):
     symbol = request.GET.get('query')
     if symbol:
         return redirect('stock_detail', symbol=symbol.upper())
     return redirect('home')
-
-
-import yfinance as yf
-from django.shortcuts import render
 
 
 def stock_detail_view(request, symbol):
@@ -110,21 +98,35 @@ def stock_detail_view(request, symbol):
             "BSE": "BSE (India)",
         }
         exchange = EXCHANGE_MAP.get(info.get("exchange"), info.get("exchange"))
-        def format_dataframe(df):
-            if df is not None and not df.empty:
-                df = df.fillna('-')
-                return {
-                    "columns": [col.strftime("%b %Y") if hasattr(col, 'strftime') else str(col) for col in df.columns],
-                    "rows": [
-                        {"label": index, "values": [df.at[index, col] for col in df.columns]}
-                        for index in df.index
-                    ]
-                }
-            return None
 
-        financials_data = format_dataframe(stock.financials)
-        balance_sheet_data = format_dataframe(stock.balance_sheet)
-        cashflow_data = format_dataframe(stock.cashflow)
+        # Fetch financials, balance sheet, and cash flow
+        income_statement = stock.financials
+        balance_sheet = stock.balance_sheet
+        cash_flow = stock.cashflow
+
+        # Extract specific financial data
+        TotalRevenue = income_statement.loc['Total Revenue'].iloc[0] if 'Total Revenue' in income_statement.index else None
+        OperatingExpense = income_statement.loc['Operating Expense'].iloc[0] if 'Operating Expense' in income_statement.index else None
+        NetIncome = income_statement.loc['Net Income'].iloc[0] if 'Net Income' in income_statement.index else None
+        RnD = income_statement.loc['Research And Development'].iloc[0] if 'Research And Development' in income_statement.index else None
+        GrossProfit = income_statement.loc['Gross Profit'].iloc[0] if 'Gross Profit' in income_statement.index else None
+        OperatingIncome = income_statement.loc['EBIT'].iloc[0] if 'EBIT' in income_statement.index else None
+        EPS = income_statement.loc['Diluted EPS'].iloc[0] if 'Diluted EPS' in income_statement.index else None
+
+        TotalAssets = balance_sheet.loc['Total Assets'].iloc[0] if 'Total Assets' in balance_sheet.index else None
+        TotalLiabilities = balance_sheet.loc['Total Liabilities Net Minority Interest'].iloc[0] if 'Total Liabilities Net Minority Interest' in balance_sheet.index else None
+        equity = balance_sheet.loc['Total Equity Gross Minority Interest'].iloc[0] if 'Total Equity Gross Minority Interest' in balance_sheet.index else None
+
+        # Calculate missing values
+        netProfitMargin = (NetIncome / TotalRevenue) * 100 if TotalRevenue and NetIncome else None
+        ROE = (NetIncome / equity) * 100 if equity and NetIncome else None
+
+        NetCash = cash_flow.loc['Changes In Cash'].iloc[0] if 'Changes In Cash' in cash_flow.index else None
+        FreeCashFlow = cash_flow.loc['Free Cash Flow'].iloc[0] if 'Free Cash Flow' in cash_flow.index else None
+        CashFromOperations = cash_flow.loc['Operating Cash Flow'].iloc[0] if 'Operating Cash Flow' in cash_flow.index else None
+        CashFromInvesting = cash_flow.loc['Investing Cash Flow'].iloc[0] if 'Investing Cash Flow' in cash_flow.index else None
+        CashFinancing = cash_flow.loc['Financing Cash Flow'].iloc[0] if 'Financing Cash Flow' in cash_flow.index else None
+
     except Exception as e:
         return render(request, 'stocktool/stock_detail.html', {
             'error': f"Could not fetch stock data for {symbol.upper()}."
@@ -136,24 +138,23 @@ def stock_detail_view(request, symbol):
         'currency': currency_symbol,
         'full_name': full_name,
         'exchange': exchange,
-        'summary': info.get("longBusinessSummary"),
-        'employees': info.get("fullTimeEmployees"),
-        'website': info.get("website"),
-        'ceo': ceo,
-        'previous_close': info.get("previousClose"),
-        'day_range': f"{info.get('dayLow')} - {info.get('dayHigh')}" if info.get("dayLow") and info.get(
-            "dayHigh") else None,
-        'year_range': f"{info.get('fiftyTwoWeekLow')} - {info.get('fiftyTwoWeekHigh')}" if info.get(
-            "fiftyTwoWeekLow") and info.get("fiftyTwoWeekHigh") else None,
-        'market_cap': info.get("marketCap"),
-        'avg_volume': info.get("averageVolume"),
-        'pe_ratio': info.get("trailingPE"),
-        'dividend_yield': info.get("dividendYield"),
-        'primary_exchange': exchange,
-        'financials': financials_data,
-        'balance_sheet': balance_sheet_data,
-        'cash_flow': cashflow_data,
+        'TotalRevenue': TotalRevenue,
+        'OperatingExpense': OperatingExpense,
+        'NetIncome': NetIncome,
+        'RnD': RnD,
+        'GrossProfit': GrossProfit,
+        'OperatingIncome': OperatingIncome,
+        'EPS': EPS,
+        'TotalAssets': TotalAssets,
+        'TotalLiabilities': TotalLiabilities,
+        'equity': equity,
+        'netProfitMargin': netProfitMargin,
+        'ROE': ROE,
+        'NetCash': NetCash,
+        'FreeCashFlow': FreeCashFlow,
+        'CashOps': CashFromOperations,
+        'CashInvesting': CashFromInvesting,
+        'CashFinancing': CashFinancing,
     }
 
     return render(request, 'stocktool/stock_detail.html', context)
-

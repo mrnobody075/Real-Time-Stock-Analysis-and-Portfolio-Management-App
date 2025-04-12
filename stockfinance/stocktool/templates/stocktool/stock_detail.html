@@ -1,129 +1,227 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <title>{{ full_name }} - Stock Details</title>
-  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
-  <style>
-    .accordion-body p {
-      margin-bottom: 0.5rem;
-    }
-    .summary-preview {
-      max-height: 150px;
-      overflow-y: auto;
-    }
-  </style>
+    <meta charset="UTF-8">
+    <title>{{ full_name }} - Stock Details</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <style>
+        .accordion-body p {
+            margin-bottom: 0.5rem;
+        }
+
+        .summary-preview {
+            max-height: 150px;
+            overflow-y: auto;
+        }
+    </style>
 </head>
 
 <body class="bg-dark text-white">
-  <!-- Breadcrumb -->
-  <nav style="--bs-breadcrumb-divider: '>'; background-color: #1a1a1a; padding: 10px;" aria-label="breadcrumb">
+<!-- Breadcrumb -->
+<nav style="--bs-breadcrumb-divider: '>'; background-color: #1a1a1a; padding: 10px;" aria-label="breadcrumb">
     <ol class="breadcrumb mb-0">
-      <li class="breadcrumb-item">
-        <a href="/" style="color: white; text-decoration: none;">Home</a>
-      </li>
-      <li class="breadcrumb-item active text-white" aria-current="page">Stock</li>
+        <li class="breadcrumb-item">
+            <a href="/" style="color: white; text-decoration: none;">Home</a>
+        </li>
+        <li class="breadcrumb-item active text-white" aria-current="page">Stock</li>
     </ol>
-  </nav>
+</nav>
 
-  <!-- Main Content -->
-  <div class="container mt-4">
+<!-- Main Content -->
+<div class="container mt-4">
     <div class="row">
 
-      <!-- LEFT: Stock Info -->
-      <div class="col-md-8">
-        {% if error %}
-          <div class="alert alert-danger">{{ error }}</div>
-        {% else %}
-          <h2>{{ full_name }} ({{ symbol }})</h2>
-          <p class="text-muted">Exchange: {{ exchange }}</p>
+        <!-- LEFT: Stock Info -->
+        <div class="col-md-8">
+            {% if error %}
+            <div class="alert alert-danger">{{ error }}</div>
+            {% else %}
+            <h2>{{ full_name }} ({{ symbol }})</h2>
+            <p class="text-muted">Exchange: {{ exchange }}</p>
 
-          <div class="card bg-secondary p-4 mt-3">
-            <h4>Current Price:</h4>
-            <h2>{{ currency }} {{ current_price }}</h2>
-          </div>
-        {% endif %}
-
-
-      </div>
-
-      <!-- RIGHT: Accordion Info -->
-      <div class="col-md-4">
-        <div class="accordion" id="accordionRight">
-
-          <!-- Accordion 1: Key Metrics -->
-          <div class="accordion-item">
-            <h2 class="accordion-header" id="headingMetrics">
-              <button class="accordion-button" type="button" data-bs-toggle="collapse" data-bs-target="#collapseMetrics" aria-expanded="true" aria-controls="collapseMetrics">
-                Key Metrics
-              </button>
-            </h2>
-            <div id="collapseMetrics" class="accordion-collapse collapse show" aria-labelledby="headingMetrics" data-bs-parent="#accordionRight">
-              <div class="accordion-body">
-                <table class="table table-borderless text-white">
-  <tbody>
-    {% if previous_close %}
-      <tr><td><strong>Previous Close:</strong></td><td>{{ previous_close }}</td></tr>
-    {% endif %}
-    {% if day_range %}
-      <tr><td><strong>Day Range:</strong></td><td>{{ day_range }}</td></tr>
-    {% endif %}
-    {% if year_range %}
-      <tr><td><strong>Year Range:</strong></td><td>{{ year_range }}</td></tr>
-    {% endif %}
-    {% if market_cap %}
-      <tr><td><strong>Market Cap:</strong></td><td>{{ market_cap }}</td></tr>
-    {% endif %}
-    {% if avg_volume %}
-      <tr><td><strong>Avg Volume:</strong></td><td>{{ avg_volume }}</td></tr>
-    {% endif %}
-    {% if pe_ratio %}
-      <tr><td><strong>P/E Ratio:</strong></td><td>{{ pe_ratio }}</td></tr>
-    {% endif %}
-    {% if dividend_yield %}
-      <tr><td><strong>Dividend Yield:</strong></td><td>{{ dividend_yield }}</td></tr>
-    {% endif %}
-    {% if primary_exchange %}
-      <tr><td><strong>Primary Exchange:</strong></td><td>{{ primary_exchange }}</td></tr>
-    {% endif %}
-  </tbody>
-</table>
-
-              </div>
+            <div class="card bg-secondary p-4 mt-3">
+                <h4>Current Price:</h4>
+                <h2>{{ currency }} {{ current_price }}</h2>
             </div>
-          </div>
+            {% endif %}
+            <div class="accordion" id="financialsAccordion">
 
-          <!-- Accordion 2: About -->
-          <div class="accordion-item">
-            <h2 class="accordion-header" id="headingAbout">
-              <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#collapseAbout" aria-expanded="false" aria-controls="collapseAbout">
-                About
-              </button>
-            </h2>
-            <div id="collapseAbout" class="accordion-collapse collapse" aria-labelledby="headingAbout" data-bs-parent="#accordionRight">
-              <div class="accordion-body">
-                {% if summary %}
-                  {% if summary %}
-  <p><strong>Summary:</strong><br>
-    <span class="summary-preview">{{ summary|slice:":300" }}{% if summary|length > 300 %}...{% endif %}</span>
-  </p>
-{% endif %}
+                <!-- Income Statement -->
+                <div class="accordion-item">
+                    <h2 class="accordion-header" id="headingIncome">
+                        <button class="accordion-button" type="button" data-bs-toggle="collapse"
+                                data-bs-target="#collapseIncome">
+                            Income Statement
+                        </button>
+                    </h2>
+                    <div id="collapseIncome" class="accordion-collapse collapse show"
+                         data-bs-parent="#financialsAccordion">
+                        <div class="accordion-body">
+                            <p><strong>Total Revenue:</strong> {{ TotalRevenue }}</p>
+                            <p><strong>Operating Expense:</strong> {{ OperatingExpense }}</p>
+                            <p><strong>Net Income:</strong> {{ NetIncome }}</p>
+                            <p><strong>R&D:</strong> {{ RnD }}</p>
+                            <p><strong>Gross Profit:</strong> {{ GrossProfit }}</p>
+                            <p><strong>Operating Income:</strong> {{ OperatingIncome }}</p>
+                            <p><strong>EPS:</strong> {{ EPS }}</p>
+                            <p><strong>Net Profit Margin:</strong> {{ netProfitMargin|floatformat:2 }}%</p>
+                            <img src="{{ income_chart }}" alt="Income Chart" class="img-fluid mt-3">
+                        </div>
+                    </div>
+                </div>
 
-                {% endif %}
-                {% if founded %}<p><strong>Founded:</strong> {{ founded }}</p>{% endif %}
-                {% if ceo %}<p><strong>CEO:</strong> {{ ceo }}</p>{% endif %}
-                {% if employees %}<p><strong>Employees:</strong> {{ employees }}</p>{% endif %}
-                {% if website %}<p><strong>Website:</strong> <a href="{{ website }}" target="_blank" class="text-info">{{ website }}</a></p>{% endif %}
-              </div>
+                <!-- Balance Sheet -->
+                <div class="accordion-item">
+                    <h2 class="accordion-header" id="headingBalance">
+                        <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse"
+                                data-bs-target="#collapseBalance">
+                            Balance Sheet
+                        </button>
+                    </h2>
+                    <div id="collapseBalance" class="accordion-collapse collapse" data-bs-parent="#financialsAccordion">
+                        <div class="accordion-body">
+                            <p><strong>Total Assets:</strong> {{ TotalAssets }}</p>
+                            <p><strong>Total Liabilities:</strong> {{ TotalLiabilities }}</p>
+                            <p><strong>Equity:</strong> {{ equity }}</p>
+                            <p><strong>ROE:</strong> {{ ROE|floatformat:2 }}%</p>
+                            <img src="{{ balance_chart }}" alt="Balance Sheet Chart" class="img-fluid mt-3">
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Cash Flow -->
+                <div class="accordion-item">
+                    <h2 class="accordion-header" id="headingCashFlow">
+                        <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse"
+                                data-bs-target="#collapseCashFlow">
+                            Cash Flow
+                        </button>
+                    </h2>
+                    <div id="collapseCashFlow" class="accordion-collapse collapse"
+                         data-bs-parent="#financialsAccordion">
+                        <div class="accordion-body">
+                            <p><strong>Net Cash:</strong> {{ NetCash }}</p>
+                            <p><strong>Free Cash Flow:</strong> {{ FreeCashFlow }}</p>
+                            <p><strong>Cash from Operations:</strong> {{ CashOps }}</p>
+                            <p><strong>Cash from Investing:</strong> {{ CashInvesting }}</p>
+                            <p><strong>Cash from Financing:</strong> {{ CashFinancing }}</p>
+                            <img src="{{ cashflow_chart }}" alt="Cash Flow Chart" class="img-fluid mt-3">
+                        </div>
+                    </div>
+                </div>
+
             </div>
-          </div>
 
-        </div> <!-- /.accordion -->
-      </div>
+
+        </div>
+
+        <!-- RIGHT: Accordion Info -->
+        <div class="col-md-4">
+            <div class="accordion" id="accordionRight">
+
+                <!-- Accordion 1: Key Metrics -->
+                <div class="accordion-item">
+                    <h2 class="accordion-header" id="headingMetrics">
+                        <button class="accordion-button" type="button" data-bs-toggle="collapse"
+                                data-bs-target="#collapseMetrics" aria-expanded="true" aria-controls="collapseMetrics">
+                            Key Metrics
+                        </button>
+                    </h2>
+                    <div id="collapseMetrics" class="accordion-collapse collapse show" aria-labelledby="headingMetrics"
+                         data-bs-parent="#accordionRight">
+                        <div class="accordion-body">
+                            <table class="table table-borderless text-white">
+                                <tbody>
+                                {% if previous_close %}
+                                <tr>
+                                    <td><strong>Previous Close:</strong></td>
+                                    <td>{{ currency }} {{ previous_close }}</td>
+                                </tr>
+                                {% endif %}
+                                {% if day_range %}
+                                <tr>
+                                    <td><strong>Day Range:</strong></td>
+                                    <td>{{ currency }} {{ day_range }}</td>
+                                </tr>
+                                {% endif %}
+                                {% if year_range %}
+                                <tr>
+                                    <td><strong>Year Range:</strong></td>
+                                    <td>{{ currency }} {{ year_range }}</td>
+                                </tr>
+                                {% endif %}
+                                {% if market_cap %}
+                                <tr>
+                                    <td><strong>Market Cap:</strong></td>
+                                    <td>{{ currency }} {{ market_cap }}</td>
+                                </tr>
+                                {% endif %}
+                                {% if avg_volume %}
+                                <tr>
+                                    <td><strong>Avg Volume:</strong></td>
+                                    <td>{{ currency }} {{ avg_volume }}</td>
+                                </tr>
+                                {% endif %}
+                                {% if pe_ratio %}
+                                <tr>
+                                    <td><strong>P/E Ratio:</strong></td>
+                                    <td>{{ pe_ratio }}</td>
+                                </tr>
+                                {% endif %}
+                                {% if dividend_yield %}
+                                <tr>
+                                    <td><strong>Dividend Yield:</strong></td>
+                                    <td>{{ dividend_yield }}</td>
+                                </tr>
+                                {% endif %}
+                                {% if primary_exchange %}
+                                <tr>
+                                    <td><strong>Primary Exchange:</strong></td>
+                                    <td>{{ primary_exchange }}</td>
+                                </tr>
+                                {% endif %}
+                                </tbody>
+                            </table>
+
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Accordion 2: About -->
+                <div class="accordion-item">
+                    <h2 class="accordion-header" id="headingAbout">
+                        <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse"
+                                data-bs-target="#collapseAbout" aria-expanded="false" aria-controls="collapseAbout">
+                            About
+                        </button>
+                    </h2>
+                    <div id="collapseAbout" class="accordion-collapse collapse" aria-labelledby="headingAbout"
+                         data-bs-parent="#accordionRight">
+                        <div class="accordion-body">
+                            {% if summary %}
+                            {% if summary %}
+                            <p><strong>Summary:</strong><br>
+                                <span class="summary-preview">{{ summary|slice:":300" }}{% if summary|length > 300 %}...{% endif %}</span>
+                            </p>
+                            {% endif %}
+
+                            {% endif %}
+                            {% if founded %}<p><strong>Founded:</strong> {{ founded }}</p>{% endif %}
+                            {% if ceo %}<p><strong>CEO:</strong> {{ ceo }}</p>{% endif %}
+                            {% if employees %}<p><strong>Employees:</strong> {{ employees }}</p>{% endif %}
+                            {% if website %}<p><strong>Website:</strong> <a href="{{ website }}" target="_blank"
+                                                                            class="text-info">{{ website }}</a></p>{%
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+
+            </div> <!-- /.accordion -->
+        </div>
 
     </div>
-  </div>
+</div>
 
-  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.5/dist/js/bootstrap.bundle.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.5/dist/js/bootstrap.bundle.min.js"></script>
 </body>
 </html>
