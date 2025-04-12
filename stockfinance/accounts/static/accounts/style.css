@@ -1,0 +1,49 @@
+body {
+    background-color: #f7f7f7;
+    font-family: Arial, sans-serif;
+    padding: 30px;
+}
+
+h2 {
+    color: #333;
+}
+
+form {
+    background: white;
+    padding: 20px;
+    border-radius: 10px;
+    max-width: 400px;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+    text-align: center;
+}
+
+form p {
+    margin-bottom: 15px;
+    text-align: center;
+}
+
+input {
+    width: 100%;
+    padding: 10px;
+    border: 1px solid #ccc;
+    border-radius: 5px;
+    text-align: center;
+}
+
+button {
+    background-color: #4CAF50;
+    color: white;
+    padding: 10px 15px;
+    border: none;
+    border-radius: 5px;
+    cursor: pointer;
+}
+#upl{
+    text-align: center;
+}
+#passwordHelpInline{
+    text-align: center;
+}
+.mb-3{
+    text-align: center;
+}

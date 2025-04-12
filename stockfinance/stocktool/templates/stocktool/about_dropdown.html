@@ -1,0 +1,25 @@
+{% extends 'stocktool/stock_detail.html' %}
+{% block content %}
+<div class="container mt-4">
+  <div class="d-flex justify-content-between align-items-start">
+    <div>
+      <h2>{{ full_name }} ({{ symbol }})</h2>
+      <h4>{{ currency }} {{ current_price }}</h4>
+      <p><strong>Exchange:</strong> {{ exchange }}</p>
+    </div>
+
+    <div class="dropdown">
+      <button class="btn btn-outline-secondary dropdown-toggle" type="button" id="aboutDropdown" data-bs-toggle="dropdown" aria-expanded="false">
+        About
+      </button>
+      <ul class="dropdown-menu dropdown-menu-end" aria-labelledby="aboutDropdown">
+        {% if summary %}<li class="px-3 py-2"><strong>Summary:</strong><br>{{ summary }}</li>{% endif %}
+        {% if founded %}<li class="px-3 py-2"><strong>Founded:</strong> {{ founded }}</li>{% endif %}
+        {% if ceo %}<li class="px-3 py-2"><strong>CEO:</strong> {{ ceo }}</li>{% endif %}
+        {% if website %}<li class="px-3 py-2"><strong>Website:</strong> <a href="{{ website }}" target="_blank">{{ website }}</a></li>{% endif %}
+        {% if employees %}<li class="px-3 py-2"><strong>Employees:</strong> {{ employees }}</li>{% endif %}
+      </ul>
+    </div>
+  </div>
+</div>
+{% endblock %}
