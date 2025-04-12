@@ -29,7 +29,11 @@
         .card-body h2 {
             font-size: 2.5rem;
         }
+        .nav-pills .nav-link {
+            margin-right: 5px;
+        }
     </style>
+    <script src="https://cdn.plot.ly/plotly-latest.min.js"></script>
 </head>
 
 <body class="bg-dark text-white">
@@ -55,14 +59,53 @@
             <h2>{{ full_name }} ({{ symbol }})</h2>
             <p>Exchange: {{ primary_exchange }}</p>
 
-            <div class="card">
+            <div class="card mb-4">
                 <div class="card-body">
                     <h4>Current Price:</h4>
-                    <h2>{{ currency }} {{ current_price }}</h2>
+                    <div class="d-flex align-items-center mb-2" style="font-size: 1.5rem;">
+                        <strong>
+                            {% if currency == 'INR' %}₹{% else %}{{ currency }}{% endif %}{{ current_price }}
+                        </strong>
+                        <div class="badge bg-light {% if price_change < 0 %}text-danger{% else %}text-success{% endif %} ms-2">
+                            {% if price_change < 0 %}↓{% else %}↑{% endif %} {{ percent_change }}%
+                        </div>
+                        <small class="{% if price_change < 0 %}text-danger{% else %}text-success{% endif %} ms-2">
+                            {% if price_change < 0 %}{{ price_change }}{% else %}+{{ price_change }}{% endif %} Today
+                        </small>
+                    </div>
+                    <div class="text-muted" style="font-size: 0.875rem;">
+                        {{ last_updated }} • {{ currency }} • {{ primary_exchange }} • <a href="#"></a>
+                    </div>
                 </div>
             </div>
             {% endif %}
+            <h5 class="mt-4">Price Charts</h5>
 
+<!-- Pill-style Buttons -->
+<ul class="nav nav-pills mb-3" id="priceChartPills" role="tablist">
+    {% for label in charts.keys %}
+    <li class="nav-item" role="presentation">
+        <button class="nav-link {% if forloop.first %}active{% endif %}" id="{{ label }}-pill"
+                data-bs-toggle="pill" data-bs-target="#chart-{{ label }}" type="button"
+                role="tab" aria-controls="chart-{{ label }}" aria-selected="{{ forloop.first }}">
+            {{ label }}
+        </button>
+    </li>
+    {% endfor %}
+</ul>
+
+<!-- Chart Content -->
+<div class="tab-content" id="priceChartPillContent">
+    {% for label, chart_html in charts.items %}
+    <div class="tab-pane fade {% if forloop.first %}show active{% endif %}" id="chart-{{ label }}" role="tabpanel"
+         aria-labelledby="{{ label }}-pill">
+        {{ chart_html|safe }}
+    </div>
+    {% endfor %}
+</div>
+
+
+            <!-- Financials Accordion -->
             <div class="accordion" id="financialsAccordion">
 
                 <!-- Income Statement -->
@@ -77,47 +120,48 @@
                     <div id="collapseIncome" class="accordion-collapse collapse show"
                          data-bs-parent="#financialsAccordion">
                         <div class="accordion-body">
-                             <!-- Carousel -->
-                             {% if annual_graph or quarterly_graph %}
-                             <div id="carouselExampleIndicators" class="carousel slide" data-bs-ride="carousel">
-                                 <div class="carousel-indicators">
-                                     {% if annual_graph %}
-                                     <button type="button" data-bs-target="#carouselExampleIndicators"
-                                             data-bs-slide-to="0" class="active"
-                                             aria-current="true" aria-label="Yearly Revenue and Income"></button>
-                                     {% endif %}
-                                     {% if quarterly_graph %}
-                                     <button type="button" data-bs-target="#carouselExampleIndicators"
-                                             data-bs-slide-to="1"
-                                             aria-label="Quarterly Revenue and Income"></button>
-                                     {% endif %}
-                                 </div>
-                                 <div class="carousel-inner">
-                                     {% if annual_graph %}
-                                     <div class="carousel-item active">
-                                         <img src="/{{ annual_graph }}" class="d-block w-100"
-                                              alt="Yearly Revenue and Income">
-                                     </div>
-                                     {% endif %}
-                                     {% if quarterly_graph %}
-                                     <div class="carousel-item {% if not annual_graph %}active{% endif %}">
-                                         <img src="/{{ quarterly_graph }}" class="d-block w-100"
-                                              alt="Quarterly Revenue and Income">
-                                     </div>
-                                     {% endif %}
-                                 </div>
-                                 <button class="carousel-control-prev" type="button" data-bs-target="#carouselExampleIndicators"
-                                         data-bs-slide="prev">
-                                     <span class="carousel-control-prev-icon" aria-hidden="true"></span>
-                                     <span class="visually-hidden">Previous</span>
-                                 </button>
-                                 <button class="carousel-control-next" type="button" data-bs-target="#carouselExampleIndicators"
-                                         data-bs-slide="next">
-                                     <span class="carousel-control-next-icon" aria-hidden="true"></span>
-                                     <span class="visually-hidden">Next</span>
-                                 </button>
-                             </div>
-                             {% endif %}
+                            <!-- Income Graph Tabs -->
+<h5 class="mt-4">Income Statement Charts</h5>
+
+<ul class="nav nav-pills mb-3" id="incomeGraphTabs" role="tablist">
+    {% if annual_income_html %}
+    <li class="nav-item" role="presentation">
+        <button class="nav-link {% if not quarterly_income_html %}active{% endif %}" id="annual-income-tab" data-bs-toggle="pill"
+                data-bs-target="#annual-income" type="button" role="tab"
+                aria-controls="annual-income" aria-selected="true">
+            Annual
+        </button>
+    </li>
+    {% endif %}
+    {% if quarterly_income_html %}
+    <li class="nav-item" role="presentation">
+        <button class="nav-link {% if not annual_income_html %}active{% endif %}" id="quarterly-income-tab" data-bs-toggle="pill"
+                data-bs-target="#quarterly-income" type="button" role="tab"
+                aria-controls="quarterly-income" aria-selected="false">
+            Quarterly
+        </button>
+    </li>
+    {% endif %}
+</ul>
+
+<div class="tab-content" id="incomeGraphTabContent">
+    {% if annual_income_html %}
+    <div class="tab-pane fade {% if not quarterly_income_html %}show active{% endif %}" id="annual-income" role="tabpanel"
+         aria-labelledby="annual-income-tab">
+        <h6>Annual Revenue, Net Income</h6>
+        {{ annual_income_html|safe }}
+    </div>
+    {% endif %}
+    {% if quarterly_income_html %}
+    <div class="tab-pane fade {% if not annual_income_html %}show active{% endif %}" id="quarterly-income" role="tabpanel"
+         aria-labelledby="quarterly-income-tab">
+        <h6>Quarterly Revenue, Net Income</h6>
+        {{ quarterly_income_html|safe }}
+    </div>
+    {% endif %}
+</div>
+
+
                             <p><strong>Total Revenue:</strong> {{ TotalRevenue }}</p>
                             <p><strong>Operating Expense:</strong> {{ OperatingExpense }}</p>
                             <p><strong>Net Income:</strong> {{ NetIncome }}</p>
@@ -140,6 +184,46 @@
                     </h2>
                     <div id="collapseBalance" class="accordion-collapse collapse" data-bs-parent="#financialsAccordion">
                         <div class="accordion-body">
+                            <!-- Balance Sheet Graph Tabs -->
+                            <ul class="nav nav-pills mb-3" id="balanceGraphTabs" role="tablist">
+                                {% if annual_balance_html %}
+                                <li class="nav-item" role="presentation">
+                                    <button class="nav-link active" id="annual-balance-tab" data-bs-toggle="pill"
+                                            data-bs-target="#annual-balance" type="button" role="tab"
+                                            aria-controls="annual-balance" aria-selected="true">
+                                        Annual
+                                    </button>
+                                </li>
+                                {% endif %}
+                                {% if quarterly_balance_html %}
+                                <li class="nav-item" role="presentation">
+                                    <button class="nav-link {% if not annual_balance_html %}active{% endif %}"
+                                            id="quarterly-balance-tab" data-bs-toggle="pill"
+                                            data-bs-target="#quarterly-balance" type="button" role="tab"
+                                            aria-controls="quarterly-balance" aria-selected="false">
+                                        Quarterly
+                                    </button>
+                                </li>
+                                {% endif %}
+                            </ul>
+
+                            <div class="tab-content" id="balanceGraphTabContent">
+                                {% if annual_balance_html %}
+                                <div class="tab-pane fade show active" id="annual-balance" role="tabpanel"
+                                     aria-labelledby="annual-balance-tab">
+                                    <h6>Yearly Total Assets, Total Liabilities</h6>
+                                    {{ annual_balance_html|safe }}
+                                </div>
+                                {% endif %}
+                                {% if quarterly_balance_html %}
+                                <div class="tab-pane fade {% if not annual_balance_html %}show active{% endif %}"
+                                     id="quarterly-balance" role="tabpanel" aria-labelledby="quarterly-balance-tab">
+                                    <h6>Quarterly Total Assets, Total Liabilities</h6>
+                                    {{ quarterly_balance_html|safe }}
+                                </div>
+                                {% endif %}
+                            </div>
+
                             <p><strong>Total Assets:</strong> {{ TotalAssets }}</p>
                             <p><strong>Total Liabilities:</strong> {{ TotalLiabilities }}</p>
                             <p><strong>Equity:</strong> {{ equity }}</p>

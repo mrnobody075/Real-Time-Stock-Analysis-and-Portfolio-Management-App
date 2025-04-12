@@ -3,7 +3,10 @@ from django.shortcuts import render, redirect
 from django.contrib.auth.decorators import login_required
 from django.conf import settings
 import yfinance as yf
-
+import pandas as pd
+import plotly.express as px
+import plotly.io as pio
+from .utils.finance_charts import balance_sheet_graph, income_graph, generate_price_chart
 
 @login_required
 def home_view(request):
@@ -19,7 +22,7 @@ def home_view(request):
     articles = data.get('articles', [])
     return render(request, 'stocktool/home.html', {'articles': articles})
 
-
+@login_required
 def news_view(request, category='top'):
     api_key = settings.NEWS_API_KEY
 
@@ -46,14 +49,14 @@ def news_view(request, category='top'):
         'category': category,
     })
 
-
+@login_required
 def stock_redirect_view(request):
     symbol = request.GET.get('query')
     if symbol:
         return redirect('stock_detail', symbol=symbol.upper())
     return redirect('home')
 
-
+@login_required
 def stock_detail_view(request, symbol):
     symbol = symbol.upper()
 
@@ -131,56 +134,21 @@ def stock_detail_view(request, symbol):
         return render(request, 'stocktool/stock_detail.html', {
             'error': f"Could not fetch stock data for {symbol.upper()}."
         })
-
-    try:
-        # Fetch quarterly financials
-        quarterly_financials = stock.quarterly_financials
-
-        # Extract annual and quarterly revenue and income data
-        revenue_annual = income_statement.loc['Total Revenue'] if 'Total Revenue' in income_statement.index else None
-        income_annual = income_statement.loc['Net Income'] if 'Net Income' in income_statement.index else None
-
-        revenue_quarterly = quarterly_financials.loc['Total Revenue'] if 'Total Revenue' in quarterly_financials.index else None
-        income_quarterly = quarterly_financials.loc['Net Income'] if 'Net Income' in quarterly_financials.index else None
-
-        # Directory to save graphs
-        graph_dir = "static/stocktool/graphs"
-        os.makedirs(graph_dir, exist_ok=True)
-
-        # Generate yearly revenue and income graph
-        if revenue_annual is not None and income_annual is not None:
-            plt.figure(figsize=(8, 6))
-            plt.bar(revenue_annual.index, revenue_annual.values / 1e9, label="Revenue (Billion)", alpha=0.7)
-            plt.bar(income_annual.index, income_annual.values / 1e9, label="Income (Billion)", alpha=0.7)
-            plt.title(f"Yearly Revenue and Income - {symbol}")
-            plt.xlabel("Year")
-            plt.ylabel("Amount (in Billion)")
-            plt.legend()
-            annual_graph_path = os.path.join(graph_dir, f"{symbol}_annual.png")
-            plt.savefig(annual_graph_path)
-            plt.close()
-        else:
-            annual_graph_path = None
-
-        # Generate quarterly revenue and income graph
-        if revenue_quarterly is not None and income_quarterly is not None:
-            plt.figure(figsize=(8, 6))
-            plt.bar(revenue_quarterly.index, revenue_quarterly.values / 1e9, label="Revenue (Billion)", alpha=0.7)
-            plt.bar(income_quarterly.index, income_quarterly.values / 1e9, label="Income (Billion)", alpha=0.7)
-            plt.title(f"Quarterly Revenue and Income - {symbol}")
-            plt.xlabel("Quarter")
-            plt.ylabel("Amount (in Billion)")
-            plt.legend()
-            quarterly_graph_path = os.path.join(graph_dir, f"{symbol}_quarterly.png")
-            plt.savefig(quarterly_graph_path)
-            plt.close()
-        else:
-            quarterly_graph_path = None
-
-    except Exception as e:
-        print(f"Error generating graphs: {e}")
-        annual_graph_path = None
-        quarterly_graph_path = None
+    quarterly_income_html, annual_income_html = income_graph(stock, symbol)
+    quarterly_balance_html, annual_balance_html = balance_sheet_graph(stock, symbol)
+    previous_close = info.get("previousClose")
+    price_change = round(current_price - previous_close, 2)
+    percent_change = round((price_change / previous_close) * 100, 2)
+    last_updated = stock.history(period='1d').index[-1].strftime("%b %d, %I:%M:%S %p %Z")
+    charts = {
+        "1D": generate_price_chart(stock, symbol, "1d", "1m", "1 Day"),
+        "5D": generate_price_chart(stock, symbol, "5d", "5m", "5 Days"),
+        "1M": generate_price_chart(stock, symbol, "1mo", "30m", "1 Month"),
+        "6M": generate_price_chart(stock, symbol, "6mo", "1d", "6 Months"),
+        "1Y": generate_price_chart(stock, symbol, "1y", "1d", "1 Year"),
+        "5Y": generate_price_chart(stock, symbol, "5y", "1wk", "5 Years"),
+        "MAX": generate_price_chart(stock, symbol, "max", "1mo", "Max"),
+    }
 
     # Context to render template
     context = {
@@ -218,8 +186,15 @@ def stock_detail_view(request, symbol):
         'CashOps': CashFromOperations,
         'CashInvesting': CashFromInvesting,
         'CashFinancing': CashFinancing,
-        'annual_graph': annual_graph_path,
-        'quarterly_graph': quarterly_graph_path,
+        'quarterly_income_html': quarterly_income_html,
+        'annual_income_html': annual_income_html,
+        'quarterly_balance_html':quarterly_balance_html,
+        'annual_balance_html': annual_balance_html,
+        'price_change': price_change,
+        'percent_change': percent_change,
+        'last_updated' : last_updated,
+        "charts": charts,
+
     }
 
     return render(request, 'stocktool/stock_detail.html', context)
