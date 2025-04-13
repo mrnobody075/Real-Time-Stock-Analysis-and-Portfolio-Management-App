@@ -20,7 +20,9 @@ from django.shortcuts import redirect
 urlpatterns = [
     path('admin/', admin.site.urls),
     path('accounts/', include('accounts.urls')),
-    path('', include('stocktool.urls')),  # 👈 let / point to home_view properly
+    path('', include('stocktool.urls')),
+    path('wishlist/', include('wishlistapp.urls')),# 👈 let / point to home_view properly
+
 ]
 
 

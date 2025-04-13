@@ -8,4 +8,5 @@ urlpatterns = [
     path('search/', views.stock_redirect_view, name='stock_redirect'),
     path('search/<str:symbol>/', views.stock_detail_view, name='stock_detail'),
 
+
 ]

@@ -56,9 +56,38 @@ def stock_redirect_view(request):
         return redirect('stock_detail', symbol=symbol.upper())
     return redirect('home')
 
+
+def fetch_stock_news(symbol):
+    API_KEY = settings.NEWS_API_KEY
+    NEWS_API_URL = f"https://newsapi.org/v2/everything?q={symbol}+stock&apiKey={API_KEY}"
+
+    try:
+        response = requests.get(NEWS_API_URL)
+        response.raise_for_status()  # Raise HTTPError for bad responses (4xx and 5xx)
+
+        news_data = response.json()
+          # Debug log
+
+        # Limit the articles to 5
+        articles = [
+            {
+                "title": article["title"],
+                "source": article["source"]["name"],
+                "url": article["url"],
+                "published_at": article["publishedAt"],
+                "description": article["description"],
+            }
+            for article in news_data.get("articles", [])[:5]  # Limit to 5 articles
+        ]
+
+        return articles
+    except Exception as e:
+        print(f"Error fetching news: {e}")
+        return []
 @login_required
 def stock_detail_view(request, symbol):
     symbol = symbol.upper()
+    news_articles = fetch_stock_news(symbol)
 
     # Adjust Indian stock symbols (e.g., INFY -> INFY.NS)
     if not symbol.endswith(('.NS', '.BO')) and len(symbol) <= 5:
@@ -137,9 +166,22 @@ def stock_detail_view(request, symbol):
     quarterly_income_html, annual_income_html = income_graph(stock, symbol)
     quarterly_balance_html, annual_balance_html = balance_sheet_graph(stock, symbol)
     previous_close = info.get("previousClose")
-    price_change = round(current_price - previous_close, 2)
-    percent_change = round((price_change / previous_close) * 100, 2)
-    last_updated = stock.history(period='1d').index[-1].strftime("%b %d, %I:%M:%S %p %Z")
+    # Validate that both current_price and previous_close are not None
+    if current_price is not None and previous_close is not None:
+        price_change = round(current_price - previous_close, 2)
+        percent_change = round((price_change / previous_close) * 100, 2)
+    else:
+        price_change = None
+        percent_change = None
+    try:
+        history_data = stock.history(period='1d')
+        if not history_data.empty:  # Check if the DataFrame is not empty
+            last_updated = history_data.index[-1].strftime("%b %d, %I:%M:%S %p %Z")
+        else:
+            last_updated = "No data available for the last trading day."
+    except Exception as e:
+        print(f"Error fetching historical data: {e}")
+        last_updated = "Error fetching last updated time."
     charts = {
         "1D": generate_price_chart(stock, symbol, "1d", "1m", "1 Day"),
         "5D": generate_price_chart(stock, symbol, "5d", "5m", "5 Days"),
@@ -149,6 +191,7 @@ def stock_detail_view(request, symbol):
         "5Y": generate_price_chart(stock, symbol, "5y", "1wk", "5 Years"),
         "MAX": generate_price_chart(stock, symbol, "max", "1mo", "Max"),
     }
+
 
     # Context to render template
     context = {
@@ -194,7 +237,9 @@ def stock_detail_view(request, symbol):
         'percent_change': percent_change,
         'last_updated' : last_updated,
         "charts": charts,
+        'news_articles': news_articles,
 
     }
 
     return render(request, 'stocktool/stock_detail.html', context)
+
