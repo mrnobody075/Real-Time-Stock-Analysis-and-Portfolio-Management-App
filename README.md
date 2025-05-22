@@ -16,8 +16,3 @@ This is a Django-based stock portfolio tracker currently under development.
 ## Status
 ⚠️ This project is a work in progress. More updates coming soon.
 
-## Setup Instructions
-[...your setup instructions...]
-
-## License
-[Choose an open-source license like MIT if you want others to use it]
