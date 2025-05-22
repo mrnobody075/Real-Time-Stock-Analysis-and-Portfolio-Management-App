@@ -1,4 +1,5 @@
 {% load static %}
+
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -43,45 +44,45 @@
 
 <body>
 
-
 <div class="d-flex">
     <nav class="col-md-3 col-lg-2 d-md-block sidebar">
         <div class="position-sticky">
             <ul class="nav flex-column px-3">
                 <li class="nav-item">
-                    <a class="nav-link active" href="#">Dashboard</a>
+                    <a class="nav-link active" href="/">Dashboard</a>
                 </li>
-                <li class="nav-item">
-                    <a class="nav-link" href="#">Market Trends</a>
-                </li>
+
                 <li class="nav-item">
                     <a class="nav-link" href="/news/topstories">Financial News</a>
                 </li>
                 <li class="nav-item">
-                    <a class="nav-link" href="#">Portfolio</a>
+                    <a class="nav-link" href="{% url 'stocktool:manage_portfolio' %}">Portfolio</a>
                 </li>
                 <li class="nav-item">
-                    <a class="nav-link" href="#">Wishlist</a>
+                    <a class="nav-link" href="{% url 'wishlistapp:wishlist_list_and_create' %}">Wishlist</a>
                 </li>
                 <li class="nav-item">
                     <a class="nav-link" href="#">AI-Based Advice</a>
                 </li>
                 <li class="nav-item mt-4">
-                    <a class="nav-link" href="{% url 'profile' %}">👤 Profile</a>
+                    <a class="nav-link" href="{% url 'accounts:profile' %}">Profile</a>
                 </li>
                 <li class="nav-item">
-                    <a class="nav-link" href="#">Sign Out</a>
+                    <form action="{% url 'accounts:logout' %}" method="post" style="display:inline;">
+                        {% csrf_token %}
+                        <button type="submit" class="nav-link btn btn-link p-0" style="background: none; border: none;">Sign Out</button>
+                    </form>
                 </li>
             </ul>
         </div>
     </nav>
 
-
     <main class="main">
         <h2 class="mb-4">Welcome, {{ request.user.username }} 👋</h2>
+
         <nav class="navbar bg-body-tertiary px-4">
             <div class="container-fluid">
-                <form class="d-flex w-100" role="search" method="get" action="{% url 'stock_redirect' %}">
+                <form class="d-flex w-100" role="search" method="get" action="{% url 'stocktool:stock_redirect' %}">
                     <input class="form-control me-2" type="search" name="query"
                            placeholder="Search stock symbol (e.g., TSLA, INFY)" aria-label="Search" required>
                     <button class="btn btn-outline-success" type="submit">Search</button>
@@ -89,18 +90,29 @@
             </div>
         </nav>
 
-
         <section class="mb-5">
+            <p></p>
+            <p></p>
             <h4>Dashboard Overview</h4>
-            <p>This is your personalized stock tool dashboard. Explore market trends, track your portfolio, and
-                more.</p>
         </section>
 
-        <!-- Placeholder Sections -->
-        <section class="mb-5">
-            <h5>Market Trends</h5>
-            <p>[Coming soon...]</p>
-        </section>
+        <!-- Portfolio Summary Card -->
+        <div class="row mb-5">
+            <div class="col-12 col-md-6">
+                <div class="card">
+                    <div class="card-header">
+                        <h5 class="card-title">Portfolio Summary</h5>
+                    </div>
+                    <div class="card-body">
+                        <p><strong>Total Value:</strong> ₹{{ total_current_value }}</p>
+                        <p><strong>Unrealised Profit:</strong> ₹{{ unrealised_profit }}</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+
+
 
         <div class="row row-cols-1 row-cols-md-2 g-3">
             {% for article in articles %}

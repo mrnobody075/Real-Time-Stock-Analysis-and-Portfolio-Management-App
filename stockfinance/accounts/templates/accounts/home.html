@@ -46,7 +46,7 @@
 <div class="container">
     <h1>Welcome, {{ request.user.username|default:"Guest" }}</h1>
 
-    <form action="{% url 'logout' %}" method="post">
+    <form action="{% url 'accounts:logout' %}" method="post">
         {% csrf_token %}
         <button type="submit" class="logout-btn">Logout</button>
     </form>

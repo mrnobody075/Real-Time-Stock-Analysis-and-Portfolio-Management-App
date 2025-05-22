@@ -6,21 +6,33 @@ import yfinance as yf
 import pandas as pd
 import plotly.express as px
 import plotly.io as pio
+from django.utils.timezone import now
 from .utils.finance_charts import balance_sheet_graph, income_graph, generate_price_chart
+from .utils.sumofportfolio import convert_to_inr, cost_of_portfolio, unrealised_profit
+from .models import StockPortfolio
+from .forms import StockPortfolioForm
 
-@login_required
-def home_view(request):
-    api_key = settings.NEWS_API_KEY
+def get_portfolio_summary(user):
+    portfolio = StockPortfolio.objects.filter(user=user)
+    total_cost = 0
+    total_current_value = 0
+    total_unrealised_profit = 0
 
-    url = (
-        f"https://newsapi.org/v2/everything?"
-        f"q=top&language=en&sortBy=publishedAt&pageSize=5&apiKey={api_key}"
-    )
+    for stock in portfolio:
+        cost = cost_of_portfolio(stock.stock_symbol, stock.quantity, stock.bought_price)
+        profit = unrealised_profit(stock.stock_symbol, stock.quantity, stock.bought_price)
 
-    response = requests.get(url)
-    data = response.json()
-    articles = data.get('articles', [])
-    return render(request, 'stocktool/home.html', {'articles': articles})
+        total_cost += cost
+        if profit is not None:
+            total_unrealised_profit += profit
+            total_current_value += (cost + profit)
+
+    return {
+        'total_cost': round(total_cost, 2),
+        'total_current_value': round(total_current_value, 2),
+        'unrealised_profit': round(total_unrealised_profit, 2),
+    }
+
 
 @login_required
 def news_view(request, category='top'):
@@ -53,9 +65,8 @@ def news_view(request, category='top'):
 def stock_redirect_view(request):
     symbol = request.GET.get('query')
     if symbol:
-        return redirect('stock_detail', symbol=symbol.upper())
-    return redirect('home')
-
+        return redirect('stocktool:stock_detail', symbol=symbol.upper())
+    return redirect('stocktool:home')
 
 def fetch_stock_news(symbol):
     API_KEY = settings.NEWS_API_KEY
@@ -90,7 +101,7 @@ def stock_detail_view(request, symbol):
     news_articles = fetch_stock_news(symbol)
 
     # Adjust Indian stock symbols (e.g., INFY -> INFY.NS)
-    if not symbol.endswith(('.NS', '.BO')) and len(symbol) <= 5:
+    if not symbol.endswith(('.NS', '.BO')) and len(symbol) <= 10:
         test_symbol = symbol + ".NS"
         try:
             test_info = yf.Ticker(test_symbol).info
@@ -98,6 +109,7 @@ def stock_detail_view(request, symbol):
                 symbol = test_symbol
         except Exception:
             pass  # Fallback to original symbol if .NS doesn't work
+    print(symbol)
 
     stock = yf.Ticker(symbol)
 
@@ -242,4 +254,82 @@ def stock_detail_view(request, symbol):
     }
 
     return render(request, 'stocktool/stock_detail.html', context)
+
+
+
+@login_required
+def manage_portfolio(request):
+    error = None
+    if request.method == 'POST':
+        if 'add_stock' in request.POST:
+            form = StockPortfolioForm(request.POST)
+            if form.is_valid():
+                stock_symbol = form.cleaned_data['stock_symbol'].upper()
+                quantity = form.cleaned_data['quantity']
+
+                # Check if it's a valid stock symbol (add .NS for Indian stocks)
+                if not stock_symbol.endswith(('.NS', '.BO')) and len(stock_symbol) <= 10:
+                    test_symbol = stock_symbol + ".NS"
+                    try:
+                        test_info = yf.Ticker(test_symbol).info
+                        if test_info.get("regularMarketPrice") is not None:
+                            stock_symbol = test_symbol
+                    except Exception:
+                        pass
+
+                ticker = yf.Ticker(stock_symbol)
+                price = ticker.info.get('regularMarketPrice')
+
+                if price is None:
+                    error = f'Could not retrieve price for stock symbol {stock_symbol}.'
+                else:
+                    StockPortfolio.objects.create(
+                        user=request.user,
+                        stock_symbol=stock_symbol,
+                        quantity=quantity,
+                        bought_price=price,
+                        date_of_purchase=now().date()
+                    )
+                    return redirect('stocktool:manage_portfolio')
+
+        elif 'delete_stock' in request.POST:
+            stock_id = request.POST.get('stock_id')
+            StockPortfolio.objects.filter(id=stock_id, user=request.user).delete()
+            return redirect('stocktool:manage_portfolio')
+
+    else:
+        form = StockPortfolioForm()
+
+    # Get portfolio and calculate summary
+    summary = get_portfolio_summary(request.user)
+
+    context = {
+        'form': form,
+        'portfolio': StockPortfolio.objects.filter(user=request.user),
+        'error': error,
+        **summary
+    }
+
+    return render(request, 'stocktool/manage_portfolio.html', context)
+
+@login_required
+def home_view(request):
+    api_key = settings.NEWS_API_KEY
+
+    url = (
+        f"https://newsapi.org/v2/everything?"
+        f"q=top&language=en&sortBy=publishedAt&pageSize=5&apiKey={api_key}"
+    )
+
+    response = requests.get(url)
+    data = response.json()
+    articles = data.get('articles', [])
+
+    # Get portfolio summary
+    summary = get_portfolio_summary(request.user)
+
+    return render(request, 'stocktool/home.html', {
+        'articles': articles,
+        **summary
+    })
 

@@ -1,0 +1,107 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Manage Your Stock Portfolio</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+
+  <!-- Bootstrap CDN for styling -->
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+</head>
+<body class="bg-light">
+<nav style="--bs-breadcrumb-divider: '>'; background-color: #1a1a1a; padding: 10px;" aria-label="breadcrumb">
+    <ol class="breadcrumb mb-0">
+        <li class="breadcrumb-item">
+            <a href="/" style="color: white; text-decoration: none;">Home</a>
+        </li>
+        <li class="breadcrumb-item active text-white" aria-current="page">Stock</li>
+    </ol>
+</nav>
+
+  <div class="container py-4">
+    <h2 class="mb-4">Manage Your Stock Portfolio</h2>
+    <!-- Portfolio Summary Card -->
+<div class="card mt-4 shadow rounded">
+  <div class="card-header bg-dark text-white">
+    <h5 class="mb-0">📊 Portfolio Summary</h5>
+  </div>
+  <div class="card-body">
+    <div class="row text-center">
+      <div class="col-md-4 mb-3">
+        <h6 class="text-muted">Total Cost</h6>
+        <h4 class="text-primary">₹{{ total_cost }}</h4>
+      </div>
+      <div class="col-md-4 mb-3">
+        <h6 class="text-muted">Current Value</h6>
+        <h4 class="text-success">₹{{ total_current_value }}</h4>
+      </div>
+      <div class="col-md-4 mb-3">
+        <h6 class="text-muted">Unrealised Profit</h6>
+        {% if unrealised_profit >= 0 %}
+          <h4 class="text-success">+₹{{ unrealised_profit }}</h4>
+        {% else %}
+          <h4 class="text-danger">₹{{ unrealised_profit }}</h4>
+        {% endif %}
+      </div>
+    </div>
+  </div>
+</div>
+
+
+    <!-- Error Display -->
+    {% if error %}
+      <div class="alert alert-danger">{{ error }}</div>
+    {% endif %}
+
+    <!-- Add Stock Form -->
+    <div class="card mb-4">
+      <div class="card-body">
+        <form method="post">
+          {% csrf_token %}
+          {{ form.as_p }}
+          <button type="submit" name="add_stock" class="btn btn-primary">Add Stock</button>
+        </form>
+      </div>
+    </div>
+
+    <!-- Portfolio Table -->
+    <h4>Your Stocks</h4>
+    {% if portfolio %}
+      <table class="table table-striped table-bordered">
+        <thead class="table-dark">
+          <tr>
+            <th>Stock Symbol</th>
+            <th>Quantity</th>
+            <th>Price Bought</th>
+            <th>Date</th>
+            <th>Action</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for stock in portfolio %}
+            <tr>
+              <td>{{ stock.stock_symbol }}</td>
+              <td>{{ stock.quantity }}</td>
+              <td>₹{{ stock.bought_price }}</td>
+              <td>{{ stock.date_of_purchase }}</td>
+              <td>
+                <form method="post" style="display:inline;">
+                  {% csrf_token %}
+                  <input type="hidden" name="stock_id" value="{{ stock.id }}">
+                  <button type="submit" name="delete_stock" class="btn btn-danger btn-sm">Delete</button>
+                </form>
+              </td>
+            </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    {% else %}
+      <p>You have no stocks in your portfolio.</p>
+    {% endif %}
+  </div>
+
+  <!-- Optional Bootstrap JS (only needed for advanced components) -->
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+
+</body>
+</html>

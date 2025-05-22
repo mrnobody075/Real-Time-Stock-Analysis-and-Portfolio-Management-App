@@ -19,9 +19,9 @@ from django.urls import path, include
 from django.shortcuts import redirect
 urlpatterns = [
     path('admin/', admin.site.urls),
-    path('accounts/', include('accounts.urls')),
+    path('accounts/', include('accounts.urls', namespace='accounts')),
     path('', include('stocktool.urls')),
-    path('wishlist/', include('wishlistapp.urls')),# 👈 let / point to home_view properly
+    path('wishlist/', include('wishlistapp.urls')),
 
 ]
 

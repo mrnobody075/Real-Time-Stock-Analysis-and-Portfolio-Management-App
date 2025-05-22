@@ -71,11 +71,11 @@
 
         <hr>
 
-        <p><a href="#">🔗 Portfolio</a></p>
-        <p><a href="#">🧾 Wishlist</a></p>
+        <p><a href="{% url 'wishlistapp:wishlist_list_and_create' %}">🔗 Portfolio</a></p>
+        <p><a href="{% url 'stocktool:manage_portfolio' %}">🧾 Wishlist</a></p>
     </div>
     <div class="container">
-    <form action="{% url 'logout' %}" method="post">
+    <form action="{% url 'accounts:logout' %}" method="post">
         {% csrf_token %}
         <button type="submit" class="logout-btn">Logout</button>
     </form>
