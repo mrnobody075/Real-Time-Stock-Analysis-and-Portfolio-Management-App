@@ -39,25 +39,14 @@
   </style>
 </head>
 <body>
-<nav style="--bs-breadcrumb-divider: '>'; background-color: #1a1a1a; color: white; padding: 10px;" aria-label="breadcrumb">
-    <ol class="breadcrumb mb-0">
-        <li class="breadcrumb-item">
-            <a href="/" style="color: white; text-decoration: none;">Home</a>
-        </li>
-        <li class="breadcrumb-item active text-white" aria-current="page">Stock</li>
-    </ol>
-</nav>
 <div class="container py-5">
-
-
-  <p></p>
   <h2 class="mb-4 text-center">Financial News</h2>
 
   <div class="d-flex justify-content-center mb-4">
     <div class="btn-group" role="group">
-      <a href="{% url 'stocktool:financial_news' category='top' %}" class="btn {% if category == 'top' %}active{% endif %}">Top Stories</a>
-      <a href="{% url 'stocktool:financial_news' category='local' %}" class="btn {% if category == 'local' %}active{% endif %}">Local Market</a>
-      <a href="{% url 'stocktool:financial_news' category='global' %}" class="btn {% if category == 'global' %}active{% endif %}">Global Market</a>
+      <a href="{% url 'financial_news' category='top' %}" class="btn {% if category == 'top' %}active{% endif %}">Top Stories</a>
+      <a href="{% url 'financial_news' category='local' %}" class="btn {% if category == 'local' %}active{% endif %}">Local Market</a>
+      <a href="{% url 'financial_news' category='global' %}" class="btn {% if category == 'global' %}active{% endif %}">Global Market</a>
     </div>
   </div>
 

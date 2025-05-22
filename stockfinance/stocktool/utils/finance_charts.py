@@ -4,6 +4,10 @@ import plotly.express as px
 import plotly.io as pio
 
 
+import pandas as pd
+import plotly.express as px
+import plotly.io as pio
+
 def balance_sheet_graph(stock, symbol):
     try:
         # ----- Quarterly -----
@@ -58,6 +62,9 @@ def balance_sheet_graph(stock, symbol):
 
     return quarterly_balance_html, annual_balance_html
 
+import pandas as pd
+import plotly.express as px
+import plotly.io as pio
 
 def income_graph(stock, symbol):
     try:
@@ -130,5 +137,3 @@ def generate_price_chart(stock, symbol, period, interval, label):
                     text=[f"₹{latest_price:.2f}"], textposition='top right')
 
     return pio.to_html(fig, full_html=False)
-
-

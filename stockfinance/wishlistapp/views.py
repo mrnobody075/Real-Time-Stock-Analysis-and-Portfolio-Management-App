@@ -1,44 +1,40 @@
 from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib.auth.decorators import login_required
 from .models import Wishlist, Stock
-from .forms import WishlistForm, StockForm
+from .forms import WishlistForm
 import yfinance as yf
 from django.core.paginator import Paginator
-from django.contrib import messages
 
 @login_required
-def wishlist_list_and_create(request):
+def wishlist_list(request):
+    wishlists = request.user.wishlists.all()
+    return render(request, 'wishlistapp/wishlist_list.html', {'wishlists': wishlists})
+
+@login_required
+def wishlist_create(request):
     if request.method == 'POST':
         form = WishlistForm(request.POST)
         if form.is_valid():
             wishlist = form.save(commit=False)
             wishlist.user = request.user
             wishlist.save()
-            return redirect('wishlistapp:wishlist_list_and_create')  # Redirect to the same page
+            return redirect('wishlist_list')
     else:
         form = WishlistForm()
-
-    wishlists = request.user.wishlists.all()
-    return render(request, 'wishlistapp/wishlist_list.html', {
-        'wishlists': wishlists,
-        'form': form,
-    })
-@login_required
-def wishlist_delete(request, pk):
-    wishlist = get_object_or_404(Wishlist, pk=pk, user=request.user)
-    if request.method == "POST":
-        wishlist.delete()
-        return redirect('wishlistapp:wishlist_list_and_create')
-    else:
-        return redirect('wishlistapp:wishlist_list_and_create')  # Optional: fallback in case of a GET request
-
+    return render(request, 'wishlistapp/wishlist_form.html', {'form': form})
 
 @login_required
 def wishlist_detail(request, pk):
     wishlist = get_object_or_404(Wishlist, pk=pk)
+    all_wishlists = Wishlist.objects.all().order_by("name")
+
+    # Paginate the wishlist list
+    paginator = Paginator(all_wishlists, 5)  # Show 5 wishlists per page
+    page_number = request.GET.get("page")
+    page_obj = paginator.get_page(page_number)
+    wishlist = get_object_or_404(Wishlist, pk=pk, user=request.user)
     stocks = wishlist.stocks.all()
     stock_data = []
-    form = StockForm()
 
     for stock in stocks:
         currency_symbol = ""
@@ -53,7 +49,7 @@ def wishlist_detail(request, pk):
             current_price = info.get("regularMarketPrice")
 
             # If no price, try with .NS (NSE India) and then .BO (BSE India)
-            if current_price is None and len(stock.symbol) <= 10:
+            if current_price is None and len(stock.symbol) <= 5:
                 for suffix in [".NS", ".BO"]:
                     test_symbol = stock.symbol + suffix
                     test_info = yf.Ticker(test_symbol).info
@@ -87,8 +83,10 @@ def wishlist_detail(request, pk):
                 "current_price": round(current_price, 2),
                 "price_change": round(price_change, 2),
                 "percent_change": round(percent_change, 2),
+                "wishlist": wishlist,
                 "stock_data": stock_data,
-
+                "page_obj": page_obj,
+                "all_wishlists": all_wishlists
             })
 
         except Exception:
@@ -101,52 +99,40 @@ def wishlist_detail(request, pk):
                 "current_price": "N/A",
                 "price_change": "N/A",
                 "percent_change": "N/A",
+                "wishlist": wishlist,
                 "stock_data": stock_data,
-
+                "page_obj": page_obj,
+                "all_wishlists": all_wishlists
             })
 
     return render(request, 'wishlistapp/wishlist_detail.html', {
         "wishlist": wishlist,
-        "stock_data": stock_data,
-        'form': form,
-
+        "stock_data": stock_data
     })
-
 
 @login_required
 def stock_add(request, wishlist_id):
     wishlist = get_object_or_404(Wishlist, id=wishlist_id, user=request.user)
 
     if request.method == 'POST':
-        form = StockForm(request.POST)
-        if form.is_valid():
-            stock = form.save(commit=False)
-            stock.symbol = stock.symbol.upper()
-            stock.name = stock.name.upper()
-            stock.wishlist = wishlist
+        stock_name = request.POST.get('name')
+        stock_symbol = request.POST.get('symbol')
 
-            # Check if the stock already exists in the wishlist
-            if Stock.objects.filter(symbol=stock.symbol, wishlist=wishlist).exists():
-                messages.error(request, f"The stock with symbol {stock.symbol} already exists in your wishlist.")
-                return redirect('wishlistapp:wishlist_detail', pk=wishlist.id)
+        if not stock_name or not stock_symbol:
+            return render(request, 'wishlistapp/stock_form.html', {
+                'wishlist': wishlist,
+                'error': 'Both name and symbol are required.'
+            })
 
-            stock.save()
-            messages.success(request, f"{stock.symbol} added successfully.")
-            return redirect('wishlistapp:wishlist_detail', pk=wishlist.id)
-        else:
-            return HttpResponse("Invalid form submission", status=400)
+        stock = Stock(name=stock_name.upper(), symbol=stock_symbol.upper(), wishlist=wishlist)
+        stock.save()
+        return redirect('wishlist_detail', pk=wishlist.id)
 
-    return HttpResponse("This page is not accessible through a GET request.", status=405)
+    return render(request, 'wishlistapp/stock_form.html', {'wishlist': wishlist})
 
 @login_required
 def stock_delete(request, stock_id, wishlist_id):
     wishlist = get_object_or_404(Wishlist, id=wishlist_id, user=request.user)
     stock = get_object_or_404(Stock, id=stock_id, wishlist=wishlist)
     stock.delete()
-    return redirect('wishlistapp:wishlist_detail', pk=wishlist.id)
-
-@login_required
-def wishlist_delete(request, wishlist_id):
-    wishlist = get_object_or_404(Wishlist, id=wishlist_id, user=request.user)
-    wishlist.delete()
-    return redirect('wishlistapp:wishlist_list_and_create')  # update with correct namespace
+    return redirect('wishlist_detail', pk=wishlist.id)

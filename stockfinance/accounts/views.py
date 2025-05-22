@@ -17,27 +17,27 @@ def signup_view(request):
 
         if not username or not email or not password or not confirm_password:
             messages.error(request, "All fields are required.")
-            return redirect('accounts:signup')
+            return redirect('signup')
 
         if password != confirm_password:
             messages.error(request, "Passwords do not match.")
-            return redirect('accounts:signup')
+            return redirect('signup')
 
         if len(password) < 8:
             messages.error(request, "Password must be at least 8 characters.")
-            return redirect('accounts:signup')
+            return redirect('signup')
 
         if User.objects.filter(username=username).exists():
             messages.error(request, "Username already exists.")
-            return redirect('accounts:signup')
+            return redirect('signup')
 
         if User.objects.filter(email=email).exists():
             messages.error(request, "Email is already in use.")
-            return redirect('accounts:signup')
+            return redirect('signup')
 
         user = User.objects.create_user(username=username, password=password, email=email)
         messages.success(request, "Account created successfully.")
-        return redirect('accounts:login')
+        return redirect('login')
 
     return render(request, 'accounts/signup.html')
 
